@@ -5,8 +5,24 @@ import 'package:smart_resource_alloc/providers/app_state.dart';
 import 'package:smart_resource_alloc/theme/app_theme.dart';
 import 'package:smart_resource_alloc/data/mock_data.dart';
 
-class MapViewPage extends StatelessWidget {
+class MapViewPage extends StatefulWidget {
   const MapViewPage({super.key});
+
+  @override
+  State<MapViewPage> createState() => _MapViewPageState();
+}
+
+class _MapViewPageState extends State<MapViewPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AppState>().fetchNeeds();
+        context.read<AppState>().fetchHeatmapData();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

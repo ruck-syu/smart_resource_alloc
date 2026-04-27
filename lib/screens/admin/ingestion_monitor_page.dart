@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:smart_resource_alloc/theme/app_theme.dart';
 
+import 'package:provider/provider.dart';
+import 'package:smart_resource_alloc/providers/app_state.dart';
+
 class DataIngestionMonitorPage extends StatelessWidget {
   const DataIngestionMonitorPage({super.key});
 
@@ -14,13 +17,33 @@ class DataIngestionMonitorPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildPipelineCard('Google Cloud Vision (OCR)', 'Extracting handwritten forms', PipelineStatus.healthy, '2 mins ago', 1240),
-          _buildPipelineCard('REST API Sync', 'Sourcing from NGO partner DBs', PipelineStatus.syncing, 'Syncing...', 450),
-          _buildPipelineCard('WhatsApp / Twilio Feed', 'Processing inbound chat reports', PipelineStatus.healthy, 'Just now', 89),
-          _buildPipelineCard('CSV Batch Upload', 'Scheduled legacy data dumps', PipelineStatus.warning, 'Failed 3 hours ago', 0),
+          _buildPipelineCard(context, 'Google Cloud Vision (OCR)', 'Extracting handwritten forms', PipelineStatus.healthy, '2 mins ago', 1240),
+          _buildPipelineCard(context, 'REST API Sync', 'Sourcing from NGO partner DBs', PipelineStatus.syncing, 'Syncing...', 450),
+          _buildPipelineCard(context, 'WhatsApp / Twilio Feed', 'Processing inbound chat reports', PipelineStatus.healthy, 'Just now', 89),
+          _buildPipelineCard(context, 'CSV Batch Upload', 'Scheduled legacy data dumps', PipelineStatus.warning, 'Failed 3 hours ago', 0),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () {},
+            onPressed: () async {
+              final api = context.read<AppState>().api;
+              try {
+                final res = await api.batchUpload(
+                  [1, 2, 3], // Mock CSV bytes
+                  'manual_upload.csv',
+                  zone: 'all',
+                );
+                if (context.mounted) {
+                  if (res['success'] == true) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV Batch Upload queued')));
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['error'] ?? 'Upload failed')));
+                  }
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload error: $e')));
+                }
+              }
+            },
             icon: const Icon(LucideIcons.upload),
             label: const Text('Upload CSV Manually'),
             style: ElevatedButton.styleFrom(
@@ -32,7 +55,7 @@ class DataIngestionMonitorPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPipelineCard(String title, String description, PipelineStatus status, String lastSync, int records) {
+  Widget _buildPipelineCard(BuildContext context, String title, String description, PipelineStatus status, String lastSync, int records) {
     Color cardColor;
     IconData statusIcon;
 
@@ -82,7 +105,26 @@ class DataIngestionMonitorPage extends StatelessWidget {
                       ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
-                      onPressed: () {},
+                      onPressed: () async {
+                        final api = context.read<AppState>().api;
+                        try {
+                          final res = await api.ingestData({
+                            'sourceType': 'manual_sync',
+                            'metadata': {'pipeline': title}
+                          });
+                          if (context.mounted) {
+                            if (res['success'] == true) {
+                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Force Sync queued for $title')));
+                            } else {
+                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['error'] ?? 'Sync failed')));
+                            }
+                          }
+                        } catch (e) {
+                           if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync error: $e')));
+                           }
+                        }
+                      },
                       icon: const Icon(LucideIcons.refreshCw, size: 16),
                       label: const Text('Force Sync'),
                     )

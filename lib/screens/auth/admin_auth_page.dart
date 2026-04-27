@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:smart_resource_alloc/providers/app_state.dart';
 import 'package:smart_resource_alloc/theme/app_theme.dart';
+import 'package:smart_resource_alloc/services/auth_service.dart';
 
 class AdminAuthPage extends StatefulWidget {
   const AdminAuthPage({super.key});
@@ -17,8 +18,10 @@ class _AdminAuthPageState extends State<AdminAuthPage> {
   final TextEditingController _ngoNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  
+  bool _isLoading = false;
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill out email and password fields.')));
       return;
@@ -29,10 +32,49 @@ class _AdminAuthPageState extends State<AdminAuthPage> {
       return;
     }
 
-    final adminName = _isLogin ? 'Admin' : _ngoNameController.text;
-    context.read<AppState>().updateAdminProfile(adminName, _emailController.text);
+    setState(() => _isLoading = true);
 
-    context.go('/admin/dashboard');
+    try {
+      final auth = context.read<AuthService>();
+      final appState = context.read<AppState>();
+
+      if (!_isLogin) {
+        final res = await auth.signUp(
+          _emailController.text, 
+          _passwordController.text,
+          displayName: _ngoNameController.text,
+          role: 'admin',
+        );
+        
+        if (res.isSuccess) {
+          appState.updateAdminProfile(_ngoNameController.text, _emailController.text);
+          if (mounted) context.go('/admin/dashboard');
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res.errorMessage ?? 'Sign up failed')));
+          }
+        }
+      } else {
+        final res = await auth.signIn(_emailController.text, _passwordController.text);
+        if (res.isSuccess) {
+          if (auth.role != 'admin') {
+             await auth.signOut();
+             if (mounted) {
+               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Access denied. Admin role required.')));
+             }
+             return;
+          }
+          appState.updateAdminProfile(auth.displayName ?? 'Admin', _emailController.text);
+          if (mounted) context.go('/admin/dashboard');
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res.errorMessage ?? 'Login failed')));
+          }
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -97,9 +139,11 @@ class _AdminAuthPageState extends State<AdminAuthPage> {
               SizedBox(
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _submit,
+                  onPressed: _isLoading ? null : _submit,
                   style: ElevatedButton.styleFrom(backgroundColor: AppTheme.healthGreen),
-                  child: Text(_isLogin ? 'Access Command Center' : 'Create Organization Profile', style: const TextStyle(fontSize: 16)),
+                  child: _isLoading 
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text(_isLogin ? 'Access Command Center' : 'Create Organization Profile', style: const TextStyle(fontSize: 16)),
                 ),
               ),
               

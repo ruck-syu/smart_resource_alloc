@@ -68,16 +68,31 @@ class DispatchQueuePage extends StatelessWidget {
                           children: [
                             Expanded(
                               child: OutlinedButton(
-                                onPressed: () {},
+                                onPressed: () async {
+                                  final res = await state.triggerDispatch(need.id);
+                                  if (context.mounted) {
+                                    if (res != null) {
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Re-ranked successfully')));
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.lastError ?? 'Re-rank failed')));
+                                    }
+                                  }
+                                },
                                 child: const Text('Re-rank'),
                               ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: () {
-                                  state.assignVolunteer(need.id, matchedVolunteer.id);
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Volunteer Dispatched')));
+                                onPressed: () async {
+                                  final success = await state.assignVolunteerApi(need.id, matchedVolunteer.id);
+                                  if (context.mounted) {
+                                    if (success) {
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Volunteer Dispatched')));
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.lastError ?? 'Dispatch failed')));
+                                    }
+                                  }
                                 },
                                 icon: const Icon(LucideIcons.send),
                                 label: const Text('Approve'),

@@ -6,8 +6,21 @@ import 'package:smart_resource_alloc/providers/app_state.dart';
 import 'package:smart_resource_alloc/theme/app_theme.dart';
 import 'package:smart_resource_alloc/widgets/urgency_badge.dart';
 
-class TaskFeedPage extends StatelessWidget {
+class TaskFeedPage extends StatefulWidget {
   const TaskFeedPage({super.key});
+
+  @override
+  State<TaskFeedPage> createState() => _TaskFeedPageState();
+}
+
+class _TaskFeedPageState extends State<TaskFeedPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AppState>().fetchNeeds();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

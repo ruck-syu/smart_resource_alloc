@@ -4,6 +4,7 @@ import 'package:smart_resource_alloc/providers/app_state.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:smart_resource_alloc/theme/app_theme.dart';
+import 'package:smart_resource_alloc/services/auth_service.dart';
 
 class VolunteerProfilePage extends StatefulWidget {
   const VolunteerProfilePage({super.key});
@@ -115,7 +116,21 @@ class _VolunteerProfilePageState extends State<VolunteerProfilePage> {
         subtitle: Text(_onDuty ? 'On Duty. Engine can match you.' : 'Off Duty. You will not receive alerts.'),
         value: _onDuty,
         activeColor: AppTheme.healthGreen,
-        onChanged: (v) => setState(() => _onDuty = v),
+        onChanged: (v) async {
+           setState(() => _onDuty = v);
+           final auth = context.read<AuthService>();
+           final uid = auth.uid ?? 'VOL-8001';
+           final status = v ? 'active' : 'inactive';
+           final success = await context.read<AppState>().toggleVolunteerStatusApi(uid, status);
+           if (mounted) {
+             if (success) {
+               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Status updated to \$status')));
+             } else {
+               setState(() => _onDuty = !v); // Revert on failure
+               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.read<AppState>().lastError ?? 'Failed to update status')));
+             }
+           }
+        },
       ),
     );
   }

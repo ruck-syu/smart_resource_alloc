@@ -4,6 +4,9 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:smart_resource_alloc/theme/app_theme.dart';
 import 'package:smart_resource_alloc/models/need.dart';
 import 'package:smart_resource_alloc/widgets/urgency_badge.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_resource_alloc/providers/app_state.dart';
+import 'package:smart_resource_alloc/services/auth_service.dart';
 
 class TaskDetailPage extends StatelessWidget {
   final Need task; // In a real app we would pass id and fetch from provider
@@ -85,7 +88,20 @@ class TaskDetailPage extends StatelessWidget {
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton.icon(
-                          onPressed: () {},
+                          onPressed: () async {
+                            final appState = context.read<AppState>();
+                            final auth = context.read<AuthService>();
+                            final uid = auth.uid ?? 'VOL-8001'; // Mock ID if not logged in
+                            final success = await appState.assignVolunteerApi(task.id, uid);
+                            if (context.mounted) {
+                              if (success) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task Accepted')));
+                                context.pop();
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(appState.lastError ?? 'Failed to accept task')));
+                              }
+                            }
+                          },
                           icon: const Icon(LucideIcons.checkSquare),
                           label: const Text('Accept & Commit', style: TextStyle(fontSize: 16)),
                           style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentBlue),

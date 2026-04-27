@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:smart_resource_alloc/theme/app_theme.dart';
-import 'package:smart_resource_alloc/models/need.dart';
 
 class UrgencyBadge extends StatelessWidget {
   final int score;
@@ -29,7 +28,7 @@ class UrgencyBadge extends StatelessWidget {
           Icon(Icons.local_fire_department, size: 14, color: color),
           const SizedBox(width: 4),
           Text(
-            '\$score/10 \$label',
+            '$score/10 $label',
             style: TextStyle(
               color: color,
               fontSize: 12,

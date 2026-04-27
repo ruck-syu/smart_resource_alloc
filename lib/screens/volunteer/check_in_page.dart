@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:smart_resource_alloc/theme/app_theme.dart';
+import 'package:smart_resource_alloc/providers/app_state.dart';
 
 class CheckInPage extends StatefulWidget {
   const CheckInPage({super.key});
@@ -109,8 +112,30 @@ class _CheckInPageState extends State<CheckInPage> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  // Process ML Outcome Feedback implicitly here
+                onPressed: () async {
+                  final appState = context.read<AppState>();
+                  final taskId = appState.activeTasks.firstOrNull?.id ?? 'mock-task-id';
+                  
+                  // Map dropdown outcome to API outcome
+                  String apiOutcome = 'success';
+                  if (_outcome.contains('Partial')) apiOutcome = 'partial';
+                  if (_outcome.contains('Failed')) apiOutcome = 'failed';
+
+                  final success = await appState.completeTask(
+                    taskId,
+                    outcome: apiOutcome,
+                    feedback: 'Auto-captured GPS. Status: \$_outcome', // Mock notes
+                    volunteerRating: 4.5,
+                  );
+
+                  if (context.mounted) {
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Report submitted successfully!')));
+                      context.pop();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to submit report. Please try again.')));
+                    }
+                  }
                 },
                 icon: const Icon(LucideIcons.uploadCloud),
                 label: const Text('Submit Report & Feed Model', style: TextStyle(fontSize: 16)),

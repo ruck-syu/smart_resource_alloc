@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_resource_alloc/providers/app_state.dart';
 import 'package:smart_resource_alloc/services/offline_storage_service.dart';
 import 'package:smart_resource_alloc/theme/app_theme.dart';
 
@@ -32,19 +34,49 @@ class _SyncQueuePageState extends State<SyncQueuePage> {
       _isSyncing = true;
     });
     
-    // Simulate API calls and network latency
-    await Future.delayed(const Duration(seconds: 3));
+    final api = context.read<AppState>().api;
+    bool hasError = false;
+
+    final reportsMap = OfflineStorageService.getPendingReportsWithKeys();
+
+    for (var entry in reportsMap.entries) {
+      final key = entry.key;
+      final report = entry.value;
+      try {
+        final res = await api.ingestData({
+          'sourceType': 'offline_sync',
+          'metadata': {'timestamp': report['timestamp'], 'title': report['title']}
+        });
+        if (res['success'] == true) {
+          await OfflineStorageService.markAsSynced(key);
+        } else {
+          hasError = true;
+          await OfflineStorageService.markAsFailed(key, res['error'] ?? 'Unknown API error');
+        }
+      } catch (e) {
+        hasError = true;
+        await OfflineStorageService.markAsFailed(key, e.toString());
+      }
+    }
     
-    await OfflineStorageService.clearUploadedReports();
+    if (!hasError) {
+      await OfflineStorageService.clearUploadedReports();
+    }
     
     if (mounted) {
       setState(() {
         _isSyncing = false;
       });
       _loadReports();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All pending data successfully pushed to cloud!'), backgroundColor: AppTheme.healthGreen)
-      );
+      if (!hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('All pending data successfully pushed to cloud!'), backgroundColor: AppTheme.healthGreen)
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Some reports failed to sync. Please try again later.'), backgroundColor: AppTheme.urgentRed)
+        );
+      }
     }
   }
 

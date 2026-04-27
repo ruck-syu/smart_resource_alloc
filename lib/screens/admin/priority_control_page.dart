@@ -18,6 +18,14 @@ class _PriorityControlPageState extends State<PriorityControlPage> {
   bool _isSelectionMode = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AppState>().fetchNeeds();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     // Sort needs by urgency score descending
@@ -140,10 +148,16 @@ class _PriorityControlPageState extends State<PriorityControlPage> {
   IconData _getCategoryIcon(NeedCategory cat) {
     switch(cat) {
       case NeedCategory.health: return LucideIcons.activity;
+      case NeedCategory.education: return LucideIcons.book;
       case NeedCategory.food: return LucideIcons.utensils;
       case NeedCategory.shelter: return LucideIcons.home;
+      case NeedCategory.disasterRelief: return LucideIcons.alertTriangle;
+      case NeedCategory.sanitation: return LucideIcons.trash2;
+      case NeedCategory.bloodDonation: return LucideIcons.droplets;
+      case NeedCategory.environment: return LucideIcons.leaf;
       case NeedCategory.blood: return LucideIcons.droplets;
       case NeedCategory.rescue: return LucideIcons.lifeBuoy;
+      case NeedCategory.other: return LucideIcons.helpCircle;
     }
   }
 }

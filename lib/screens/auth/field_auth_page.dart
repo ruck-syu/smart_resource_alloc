@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:smart_resource_alloc/theme/app_theme.dart';
+import 'package:smart_resource_alloc/services/auth_service.dart';
 
 class FieldAuthPage extends StatefulWidget {
   const FieldAuthPage({super.key});
@@ -16,7 +18,9 @@ class _FieldAuthPageState extends State<FieldAuthPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  void _submit() {
+  bool _isLoading = false;
+
+  Future<void> _submit() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill out all fields.')));
       return;
@@ -27,8 +31,46 @@ class _FieldAuthPageState extends State<FieldAuthPage> {
       return;
     }
 
-    // Go straight into survey form
-    context.go('/field/survey');
+    setState(() => _isLoading = true);
+
+    try {
+      final auth = context.read<AuthService>();
+
+      if (!_isLogin) {
+        final res = await auth.signUp(
+          _emailController.text, 
+          _passwordController.text,
+          displayName: _nameController.text,
+          role: 'field_worker',
+        );
+        
+        if (res.isSuccess) {
+          if (mounted) context.go('/field/survey');
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res.errorMessage ?? 'Sign up failed')));
+          }
+        }
+      } else {
+        final res = await auth.signIn(_emailController.text, _passwordController.text);
+        if (res.isSuccess) {
+          if (auth.role != 'field_worker') {
+             await auth.signOut();
+             if (mounted) {
+               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Access denied. Field Worker role required.')));
+             }
+             return;
+          }
+          if (mounted) context.go('/field/survey');
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res.errorMessage ?? 'Login failed')));
+          }
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -93,9 +135,11 @@ class _FieldAuthPageState extends State<FieldAuthPage> {
               SizedBox(
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _submit,
+                  onPressed: _isLoading ? null : _submit,
                   style: ElevatedButton.styleFrom(backgroundColor: AppTheme.foodAmber, foregroundColor: Colors.black87),
-                  child: Text(_isLogin ? 'Enter Field App' : 'Sign Up', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: _isLoading 
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.black87, strokeWidth: 2))
+                      : Text(_isLogin ? 'Enter Field App' : 'Sign Up', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
               

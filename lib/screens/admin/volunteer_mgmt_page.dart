@@ -5,8 +5,21 @@ import 'package:smart_resource_alloc/providers/app_state.dart';
 import 'package:smart_resource_alloc/models/volunteer.dart';
 import 'package:smart_resource_alloc/theme/app_theme.dart';
 
-class VolunteerManagementPage extends StatelessWidget {
+class VolunteerManagementPage extends StatefulWidget {
   const VolunteerManagementPage({super.key});
+
+  @override
+  State<VolunteerManagementPage> createState() => _VolunteerManagementPageState();
+}
+
+class _VolunteerManagementPageState extends State<VolunteerManagementPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AppState>().fetchVolunteers();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

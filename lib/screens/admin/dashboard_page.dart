@@ -6,12 +6,34 @@ import 'package:smart_resource_alloc/widgets/heat_map_widget.dart';
 import 'package:smart_resource_alloc/widgets/stat_card.dart';
 import 'package:smart_resource_alloc/theme/app_theme.dart';
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AppState>().fetchDashboardStats();
+        context.read<AppState>().fetchHeatmapData();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+
+    final activeNeeds = state.needStats['active']?.toString() ?? '${state.activeNeeds.length}';
+    final criticalNeeds = state.needStats['critical']?.toString() ?? '${state.criticalNeeds.length}';
+    
+    final activeVol = state.volunteerStats['active']?.toString() ?? '${state.activeVolunteersCount}';
+    final totalVol = state.volunteerStats['total']?.toString() ?? '${state.volunteers.length}';
 
     return Scaffold(
       body: CustomScrollView(
@@ -49,17 +71,17 @@ class DashboardPage extends StatelessWidget {
                         children: [
                           StatCard(
                             title: 'Active Needs',
-                            value: '${state.activeNeeds.length}',
+                            value: activeNeeds,
                             icon: LucideIcons.activity,
                             color: AppTheme.accentBlue,
-                            subtitle: '${state.criticalNeeds.length} Critical',
+                            subtitle: '$criticalNeeds Critical',
                           ),
                           StatCard(
                             title: 'Volunteers Deployed',
-                            value: '${state.activeVolunteersCount}',
+                            value: activeVol,
                             icon: LucideIcons.users,
                             color: AppTheme.healthGreen,
-                            subtitle: 'Out of ${state.volunteers.length} total',
+                            subtitle: 'Out of $totalVol total',
                           ),
                           StatCard(
                             title: 'Pending Approvals',

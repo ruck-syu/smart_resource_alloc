@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:smart_resource_alloc/providers/app_state.dart';
 import 'package:smart_resource_alloc/theme/app_theme.dart';
+import 'package:smart_resource_alloc/services/auth_service.dart';
 
 class VolunteerAuthPage extends StatefulWidget {
   const VolunteerAuthPage({super.key});
@@ -19,31 +20,54 @@ class _VolunteerAuthPageState extends State<VolunteerAuthPage> {
   final TextEditingController _passwordController = TextEditingController();
   
   String _selectedZone = 'Koramangala Zone';
+  bool _isLoading = false;
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill out all fields.')));
       return;
     }
 
-    if (!_isLogin) {
-      if (_nameController.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name is required for sign up.')));
-        return;
+    if (!_isLogin && _nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name is required for sign up.')));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final auth = context.read<AuthService>();
+      final appState = context.read<AppState>();
+
+      if (!_isLogin) {
+        final res = await auth.signUp(
+          _emailController.text, 
+          _passwordController.text,
+          displayName: _nameController.text,
+          role: 'volunteer',
+        );
+        
+        if (res.isSuccess) {
+          appState.addVolunteer(_nameController.text, _selectedZone, ['General']);
+          if (mounted) context.go('/onboarding');
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res.errorMessage ?? 'Sign up failed')));
+          }
+        }
+      } else {
+        final res = await auth.signIn(_emailController.text, _passwordController.text);
+        if (res.isSuccess) {
+          appState.updateVolunteerProfile(auth.displayName ?? 'Volunteer', 'Indiranagar Hub');
+          if (mounted) context.go('/volunteer/feed');
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res.errorMessage ?? 'Login failed')));
+          }
+        }
       }
-      // Register New Volunteer into global state database
-      context.read<AppState>().addVolunteer(
-        _nameController.text, 
-        _selectedZone, 
-        ['General'] // Default mock skill
-      );
-      
-      // Send new user to onboarding
-      context.go('/onboarding');
-    } else {
-      // Just logging in, sending straight to feed
-      context.read<AppState>().updateVolunteerProfile('John LoggedIn', 'Indiranagar Hub');
-      context.go('/volunteer/feed');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -124,9 +148,11 @@ class _VolunteerAuthPageState extends State<VolunteerAuthPage> {
               SizedBox(
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _submit,
+                  onPressed: _isLoading ? null : _submit,
                   style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentBlue),
-                  child: Text(_isLogin ? 'Log In' : 'Sign Up', style: const TextStyle(fontSize: 16)),
+                  child: _isLoading 
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text(_isLogin ? 'Log In' : 'Sign Up', style: const TextStyle(fontSize: 16)),
                 ),
               ),
               
