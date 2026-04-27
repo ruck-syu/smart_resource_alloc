@@ -141,7 +141,80 @@ class _PriorityControlPageState extends State<PriorityControlPage> {
               icon: const Icon(LucideIcons.checkCircle),
               label: Text('Resolve (${_selectedIds.length})'),
             )
-          : null,
+          : FloatingActionButton(
+              onPressed: () => _showCreateNeedDialog(context),
+              backgroundColor: AppTheme.accentBlue,
+              child: const Icon(LucideIcons.plus),
+            ),
+    );
+  }
+
+  void _showCreateNeedDialog(BuildContext context) {
+    final titleCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    final zoneCtrl = TextEditingController(text: 'Central Hub');
+    final skillsCtrl = TextEditingController();
+    double urgency = 5.0;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Create New Need'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Title')),
+                TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Description')),
+                TextField(controller: zoneCtrl, decoration: const InputDecoration(labelText: 'Zone (e.g., Central Hub)')),
+                TextField(controller: skillsCtrl, decoration: const InputDecoration(labelText: 'Required Skills (comma separated)')),
+                const SizedBox(height: 16),
+                const Text('Urgency Score (1-10)'),
+                Slider(
+                  value: urgency,
+                  min: 1,
+                  max: 10,
+                  divisions: 9,
+                  label: urgency.round().toString(),
+                  onChanged: (val) => setDialogState(() => urgency = val),
+                  activeColor: AppTheme.getUrgencyColor(urgency.round()),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                final skills = skillsCtrl.text.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+                
+                final success = await context.read<AppState>().createNeed({
+                  'title': titleCtrl.text,
+                  'description': descCtrl.text,
+                  'zone': zoneCtrl.text,
+                  'category': 'disaster_relief', // Defaulting for quick creation
+                  'urgencyScore': urgency.round(),
+                  'location': {'latitude': 12.9716, 'longitude': 77.5946},
+                  'requiredSkills': skills,
+                  'volunteersNeeded': 1,
+                });
+                
+                if (mounted && ctx.mounted) {
+                  Navigator.pop(ctx);
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Need created successfully!')));
+                    context.read<AppState>().fetchNeeds();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to create need.')));
+                  }
+                }
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

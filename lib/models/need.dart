@@ -94,6 +94,7 @@ class Need {
   }
 
   Map<String, dynamic> toJson() => {
+        'id': id,
         'title': title,
         'description': description,
         'category': _categoryToString(category),

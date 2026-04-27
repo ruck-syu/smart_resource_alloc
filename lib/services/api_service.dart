@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:smart_resource_alloc/services/auth_service.dart';
 
 /// Central API client for all 4 backend micro-services.
@@ -7,15 +8,11 @@ import 'package:smart_resource_alloc/services/auth_service.dart';
 /// Every request automatically attaches the Firebase JWT token
 /// via [AuthService]. Falls back gracefully when auth is unavailable.
 class ApiService {
-  static const Map<String, String> _bases = {
-    'ingestion':
-        'https://ingestion-service-111267360502.asia-south1.run.app',
-    'volunteer':
-        'https://volunteer-service-111267360502.asia-south1.run.app',
-    'needs':
-        'https://needs-service-111267360502.asia-south1.run.app',
-    'dispatch':
-        'https://dispatch-service-111267360502.asia-south1.run.app',
+  static final Map<String, String> _bases = {
+    'ingestion': dotenv.env['INGESTION_URL'] ?? '',
+    'volunteer': dotenv.env['VOLUNTEER_URL'] ?? '',
+    'needs': dotenv.env['NEEDS_URL'] ?? '',
+    'dispatch': dotenv.env['DISPATCH_URL'] ?? '',
   };
 
   final AuthService _auth;

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Firebase Auth wrapper service.
 ///
@@ -28,8 +29,7 @@ class AuthService extends ChangeNotifier {
   Future<void> _tryInitializeFirebase() async {
     try {
       // Attempt dynamic import — will fail if Firebase is not configured
-      // For now, we stay in mock mode
-      _isFirebaseAvailable = false;
+      _isFirebaseAvailable = true;
     } catch (_) {
       _isFirebaseAvailable = false;
     }
@@ -39,10 +39,8 @@ class AuthService extends ChangeNotifier {
   /// Returns a mock token when Firebase is not configured.
   Future<String?> getIdToken() async {
     if (_isFirebaseAvailable) {
-      // When Firebase IS configured, use:
-      // final user = FirebaseAuth.instance.currentUser;
-      // return await user?.getIdToken();
-      return null;
+      final user = FirebaseAuth.instance.currentUser;
+      return await user?.getIdToken();
     }
     return _mockToken;
   }
@@ -50,23 +48,22 @@ class AuthService extends ChangeNotifier {
   /// Sign in with email/password.
   Future<AuthResult> signIn(String email, String password) async {
     if (_isFirebaseAvailable) {
-      // When Firebase IS configured:
-      // try {
-      //   final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
-      //     email: email, password: password,
-      //   );
-      //   _uid = cred.user?.uid;
-      //   _email = cred.user?.email;
-      //   _displayName = cred.user?.displayName;
-      //   final claims = (await cred.user?.getIdTokenResult())?.claims;
-      //   _role = claims?['role'] ?? 'volunteer';
-      //   _isLoggedIn = true;
-      //   _mockToken = await cred.user?.getIdToken();
-      //   notifyListeners();
-      //   return AuthResult.success();
-      // } on FirebaseAuthException catch (e) {
-      //   return AuthResult.failure(e.message ?? 'Sign in failed');
-      // }
+      try {
+        final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email, password: password,
+        );
+        _uid = cred.user?.uid;
+        _email = cred.user?.email;
+        _displayName = cred.user?.displayName;
+        final claims = (await cred.user?.getIdTokenResult())?.claims;
+        _role = claims?['role'] ?? 'volunteer';
+        _isLoggedIn = true;
+        _mockToken = await cred.user?.getIdToken();
+        notifyListeners();
+        return AuthResult.success();
+      } on FirebaseAuthException catch (e) {
+        return AuthResult.failure(e.message ?? 'Sign in failed');
+      }
     }
 
     // Mock mode
@@ -88,23 +85,22 @@ class AuthService extends ChangeNotifier {
     String role = 'volunteer',
   }) async {
     if (_isFirebaseAvailable) {
-      // When Firebase IS configured:
-      // try {
-      //   final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-      //     email: email, password: password,
-      //   );
-      //   await cred.user?.updateDisplayName(displayName);
-      //   _uid = cred.user?.uid;
-      //   _email = email;
-      //   _displayName = displayName;
-      //   _role = role;
-      //   _mockToken = await cred.user?.getIdToken();
-      //   _isLoggedIn = true;
-      //   notifyListeners();
-      //   return AuthResult.success();
-      // } on FirebaseAuthException catch (e) {
-      //   return AuthResult.failure(e.message ?? 'Sign up failed');
-      // }
+      try {
+        final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: email, password: password,
+        );
+        await cred.user?.updateDisplayName(displayName);
+        _uid = cred.user?.uid;
+        _email = email;
+        _displayName = displayName;
+        _role = role;
+        _mockToken = await cred.user?.getIdToken();
+        _isLoggedIn = true;
+        notifyListeners();
+        return AuthResult.success();
+      } on FirebaseAuthException catch (e) {
+        return AuthResult.failure(e.message ?? 'Sign up failed');
+      }
     }
 
     // Mock mode
@@ -128,7 +124,7 @@ class AuthService extends ChangeNotifier {
   /// Sign out the current user.
   Future<void> signOut() async {
     if (_isFirebaseAvailable) {
-      // await FirebaseAuth.instance.signOut();
+      await FirebaseAuth.instance.signOut();
     }
     _isLoggedIn = false;
     _uid = null;

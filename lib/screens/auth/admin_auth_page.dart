@@ -57,13 +57,6 @@ class _AdminAuthPageState extends State<AdminAuthPage> {
       } else {
         final res = await auth.signIn(_emailController.text, _passwordController.text);
         if (res.isSuccess) {
-          if (auth.role != 'admin') {
-             await auth.signOut();
-             if (mounted) {
-               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Access denied. Admin role required.')));
-             }
-             return;
-          }
           appState.updateAdminProfile(auth.displayName ?? 'Admin', _emailController.text);
           if (mounted) context.go('/admin/dashboard');
         } else {
@@ -84,7 +77,7 @@ class _AdminAuthPageState extends State<AdminAuthPage> {
         title: Text(_isLogin ? 'NGO Admin Portal Login' : 'Register NGO Organization'),
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft),
-          onPressed: () => context.pop(),
+          onPressed: () => context.go('/'),
         ),
       ),
       body: Center(
