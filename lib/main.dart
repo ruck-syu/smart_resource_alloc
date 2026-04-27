@@ -9,8 +9,11 @@ import 'package:smart_resource_alloc/services/auth_service.dart';
 import 'package:smart_resource_alloc/services/api_service.dart';
 import 'package:smart_resource_alloc/services/fcm_service.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   
   // Try initializing Firebase, but catch errors if not configured
   try {

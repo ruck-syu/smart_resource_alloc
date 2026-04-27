@@ -78,7 +78,7 @@ class _VolunteerAuthPageState extends State<VolunteerAuthPage> {
         title: Text(_isLogin ? 'Volunteer Login' : 'Register as Volunteer'),
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft),
-          onPressed: () => context.pop(),
+          onPressed: () => context.go('/'),
         ),
       ),
       body: Center(

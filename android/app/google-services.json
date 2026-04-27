@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "816508314014",
+    "project_id": "smart-resource-alloc-ebdfc",
+    "storage_bucket": "smart-resource-alloc-ebdfc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:816508314014:android:c9b29f0ec5df64ff6cf68f",
+        "android_client_info": {
+          "package_name": "com.antigravity.smart_resource_alloc"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKWD_PINBx6XUkOvA8zfzJyX_3eRbRJjg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

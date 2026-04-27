@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:smart_resource_alloc/models/need.dart';
 import 'package:smart_resource_alloc/models/volunteer.dart';
 import 'package:smart_resource_alloc/models/campaign.dart';
@@ -41,12 +42,7 @@ class AppState extends ChangeNotifier {
   String _currentAdminEmail = 'admin@smartalloc.org';
 
   AppState(this._api, this._auth) {
-    _initializeWithMockData();
-  }
-
-  void _initializeWithMockData() {
-    _needs = MockData.needs;
-    _volunteers = MockData.volunteers;
+    // Initialization without mock data
   }
 
   // ── Getters ───────────────────────────────────────────────────────
@@ -150,7 +146,9 @@ class AppState extends ChangeNotifier {
         }
       }
     } catch (e) {
-      debugPrint('fetchVolunteers failed, using mock data: $e');
+      debugPrint('fetchVolunteers failed: $e');
+      _lastError = 'Failed to fetch volunteers';
+      _volunteers = []; // clear volunteers on error
     }
 
     _isLoadingVolunteers = false;
@@ -321,13 +319,13 @@ class AppState extends ChangeNotifier {
   // ── Local State Mutations (backward compat + offline) ─────────────
 
   void addVolunteer(String name, String zone, List<String> skills) {
-    final newId = 'VOL-800${_volunteers.length + 1}';
+    final newId = _auth.uid ?? 'VOL-800${_volunteers.length + 1}';
     final newVolunteer = Volunteer(
       id: newId,
       name: name,
       skills: skills,
       status: VolunteerStatus.available,
-      lastKnownLocation: MockData.bangaloreCenter,
+      lastKnownLocation: const LatLng(12.9716, 77.5946), // Bangalore Center
       baseZone: zone,
       rating: 5.0,
       tasksCompleted: 0,
@@ -339,6 +337,7 @@ class AppState extends ChangeNotifier {
     // Also register on backend
     _api.registerVolunteer(newVolunteer.toJson()).catchError((e) {
       debugPrint('registerVolunteer API call failed: $e');
+      return <String, dynamic>{};
     });
 
     notifyListeners();
@@ -352,6 +351,7 @@ class AppState extends ChangeNotifier {
       // Also update on backend
       _api.updateNeed(id, {'status': 'resolved'}).catchError((e) {
         debugPrint('updateNeed API call failed: $e');
+        return <String, dynamic>{};
       });
 
       notifyListeners();
@@ -385,6 +385,13 @@ class AppState extends ChangeNotifier {
             Need.fromJson(response['data'] as Map<String, dynamic>);
         _needs.insert(0, newNeed);
         notifyListeners();
+        
+        // AUTO-DISPATCH LOGIC: If urgency is 8 or higher, trigger matching engine
+        if (newNeed.urgencyScore >= 8) {
+          debugPrint('High urgency detected. Auto-dispatching...');
+          await triggerDispatch(newNeed.id);
+        }
+        
         return true;
       }
     } catch (e) {

@@ -54,13 +54,6 @@ class _FieldAuthPageState extends State<FieldAuthPage> {
       } else {
         final res = await auth.signIn(_emailController.text, _passwordController.text);
         if (res.isSuccess) {
-          if (auth.role != 'field_worker') {
-             await auth.signOut();
-             if (mounted) {
-               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Access denied. Field Worker role required.')));
-             }
-             return;
-          }
           if (mounted) context.go('/field/survey');
         } else {
           if (mounted) {
@@ -80,7 +73,7 @@ class _FieldAuthPageState extends State<FieldAuthPage> {
         title: Text(_isLogin ? 'Field Worker Login' : 'Register as Field Worker'),
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft),
-          onPressed: () => context.pop(),
+          onPressed: () => context.go('/'),
         ),
       ),
       body: Center(
